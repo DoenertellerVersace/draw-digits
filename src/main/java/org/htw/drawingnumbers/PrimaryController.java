@@ -49,16 +49,14 @@ public class PrimaryController {
   public static final String MODEL_METHOD = "model";
   public static final String PREDICT_METHOD = "predict";
   private static final String MODEL_FAILED = "loading %s failed!";
-  private final LinkedList<List<Pair<Double, Double>>> draws = new LinkedList<>();
-  public Button reset;
-  public Button invertColors;
-  public Button undo;
-  public Canvas resultCanvas;
+  private LinkedList<List<Pair<Double, Double>>> draws = new LinkedList<>();
   private List<Pair<Double, Double>> drawNow;
   private File modelFile;
   private Color background = BLACK;
   private Color brush = WHITE;
   private Stage stage;
+  @FXML
+  public Canvas resultCanvas;
   @FXML
   private Slider brushSize;
   @FXML
@@ -245,6 +243,7 @@ public class PrimaryController {
   }
 
   public void cleanCanvas() {
+    draws = new LinkedList<>();
     canvas.getGraphicsContext2D().setFill(background);
     canvas.getGraphicsContext2D().fillRect(0, 0, 400, 400);
     drawResult();
