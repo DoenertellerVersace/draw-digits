@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<VBox alignment="CENTER" spacing="20.0" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="org.htw.drawningnumbers.PrimaryController">
+  <padding>
+    <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
+  </padding>
+
+  <BorderPane>
+    <top>
+      <HBox alignment="CENTER">
+        <Label text="choose a model and draw a digit [0-9] to predict through the python model"/>
+      </HBox>
+    </top>
+    <left>
+      <VBox>
+        <Canvas fx:id="canvas" width="400" height="400" onMouseDragged="#canvasOnMouseDragged"
+                onMouseClicked="#canvasOnMouseReleased" onMousePressed="#canvasOnMousePressed"/>
+        <HBox alignment="CENTER">
+          <Button fx:id="reverse" text="reverse" onAction="#reverseDraw"/>
+          <Slider fx:id="thickness" value="10" min="5" max="20" showTickLabels="true" showTickMarks="true"/>
+        </HBox>
+      </VBox>
+    </left>
+    <center>
+      <VBox alignment="CENTER">
+        <Button fx:id="chooseModel" text="change model" onAction="#onChooseModel"/>
+        <Label fx:id="modelLabel" text="choose a model..."/>
+      </VBox>
+    </center>
+    <right>
+      <VBox alignment="CENTER_RIGHT">
+        <Canvas fx:id="resultCanvas" width="400" height="400"/>
+      </VBox>
+    </right>
+    <bottom>
+      <Button fx:id="reset" text="reset" onAction="#onReset"/>
+    </bottom>
+  </BorderPane>
+</VBox>
