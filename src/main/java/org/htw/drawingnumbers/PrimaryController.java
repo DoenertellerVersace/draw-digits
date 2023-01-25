@@ -5,7 +5,6 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.input.MouseEvent;
@@ -182,7 +181,6 @@ public class PrimaryController {
         int g = (rgb >> 8) & 0xFF;
         int b = (rgb & 0xFF);
         values.add(String.valueOf((r + g + b) / 3));
-
       }
     }
     return String.join("\n", String.join(",", headers), String.join(",", values));
