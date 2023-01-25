@@ -5,6 +5,7 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.input.MouseEvent;
@@ -32,7 +33,7 @@ import static javafx.scene.paint.Color.WHITE;
 
 public class PrimaryController {
 
-  public static final File MODEL_FILE_INITIAL_DIRECTORY = new File("D:\\projects\\uni\\CNN_DIGITs");
+  public static final File MODEL_FILE_INITIAL_DIRECTORY = new File(System.getProperty("user.home"));
   public static final String MODEL_FILE_DESC = "model file (.h5)";
   public static final String MODEL_FILE_EXT = "*.h5";
   public static final String MODEL_BEING_LOADED = "%s is loading...";
@@ -48,7 +49,7 @@ public class PrimaryController {
   public static final String MODEL_METHOD = "model";
   public static final String PREDICT_METHOD = "predict";
   private static final String MODEL_FAILED = "loading %s failed!";
-  private LinkedList<List<Pair<Double, Double>>> draws = new LinkedList<>();
+  private LinkedList<Draw> draws = new LinkedList<>();
   private List<Pair<Double, Double>> drawNow;
   private File modelFile;
   private Color background = BLACK;
@@ -60,6 +61,8 @@ public class PrimaryController {
   private Slider brushSize;
   @FXML
   private Label modelLabel;
+  @FXML
+  private CheckBox erase;
   @FXML
   private Canvas canvas;
 
@@ -126,20 +129,27 @@ public class PrimaryController {
   public void canvasOnMousePressed(MouseEvent mouseEvent) {
     List<Pair<Double, Double>> startPoint = List.of(new Pair<>(mouseEvent.getX(), mouseEvent.getY()));
     drawNow = new LinkedList<>(startPoint);
-    draw(startPoint);
+    draw(getDraw(startPoint));
   }
 
   public void canvasOnMouseDragged(MouseEvent mouseEvent) {
     Pair<Double, Double> point = new Pair<>(mouseEvent.getX(), mouseEvent.getY());
     drawNow.add(point);
-    draw(List.of(point));
+    draw(getDraw(List.of(point)));
   }
 
   public void canvasOnMouseReleased(MouseEvent mouseEvent) throws IOException {
     drawNow.add(new Pair<>(mouseEvent.getX(), mouseEvent.getY()));
-    draws.add(drawNow);
-    draw(drawNow);
+    Draw draw = getDraw(drawNow);
+    draws.add(draw);
+    draw(draw);
     evalCanvas();
+  }
+
+  private Draw getDraw(List<Pair<Double, Double>> curve) {
+    return new Draw(curve, brushSize.getValue(),
+        erase.isSelected() ? Draw.Paint.BACKGROUND : Draw.Paint.BRUSH
+    );
   }
 
   public void drawResult(String string) {
@@ -155,11 +165,11 @@ public class PrimaryController {
     drawResult(NOTHING_DRAWN_YET);
   }
 
-  private void draw(List<Pair<Double, Double>> curve) {
+  private void draw(Draw curve) {
     GraphicsContext g = canvas.getGraphicsContext2D();
-    g.setFill(brush);
-    curve.forEach(point -> {
-      double t = brushSize.getValue();
+    g.setFill(getColor(curve.getPaint()));
+    curve.getPoints().forEach(point -> {
+      double t = curve.getSize();
       g.fillRect(point.getKey() - t / 2, point.getValue() - t / 2, t, t);
     });
   }
@@ -209,6 +219,7 @@ public class PrimaryController {
     try {
       if (get(RESET_METHOD).contains("model was reset")) {
         setModelLabelText(MODEL_PLS_CHOOSE);
+        draws = new LinkedList<>();
         cleanCanvas();
         drawResult();
       }
@@ -240,8 +251,11 @@ public class PrimaryController {
     }
   }
 
+  private Color getColor(Draw.Paint paint) {
+    return paint.equals(Draw.Paint.BACKGROUND) ? background : brush;
+  }
+
   public void cleanCanvas() {
-    draws = new LinkedList<>();
     canvas.getGraphicsContext2D().setFill(background);
     canvas.getGraphicsContext2D().fillRect(0, 0, 400, 400);
     drawResult();

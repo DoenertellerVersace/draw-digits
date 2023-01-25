@@ -39,17 +39,20 @@
       <HBox alignment="BOTTOM_LEFT" prefHeight="50">
         <HBox alignment="CENTER_LEFT" prefHeight="50">
           <Label prefWidth="15"/>
-          <Button fx:id="invertColors" text="Invert Colors" onAction="#onInvertColors"/>
+          <Button text="Invert" onAction="#onInvertColors"/>
           <Label prefWidth="10"/>
-          <Button fx:id="undo" text="Undo Draw" onAction="#onUndoDraw"/>
+          <Button text="Undo" onAction="#onUndoDraw"/>
           <Label prefWidth="10"/>
-          <Label text="Brush Size:"/>
-          <Label prefWidth="5"/>
+          <Label  text="Erase: "/>
+          <Label prefWidth="4"/>
+          <CheckBox fx:id="erase"/>
+          <Label prefWidth="4"/>
+          <Label  text="Brush: "/>
           <Slider fx:id="brushSize" accessibleText="Brush Size" value="18" min="10" max="25" showTickLabels="true"/>
         </HBox>
         <Label prefWidth="300"/>
         <HBox alignment="CENTER_RIGHT" prefHeight="50">
-          <Button fx:id="reset" text="Reset All" onAction="#onReset"/>
+          <Button text="Reset All" onAction="#onReset"/>
         </HBox>
       </HBox>
     </bottom>
