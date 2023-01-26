@@ -1,4 +1,4 @@
-module org.htw.drawningnumbers {
+module org.htw.drawdigits {
   requires java.desktop;
   requires javafx.controls;
   requires javafx.fxml;
@@ -7,6 +7,6 @@ module org.htw.drawningnumbers {
   requires org.json;
   requires okhttp3;
 
-  opens org.htw.drawingnumbers to javafx.fxml;
-  exports org.htw.drawingnumbers;
+  opens org.htw.drawdigits to javafx.fxml;
+  exports org.htw.drawdigits;
 }
