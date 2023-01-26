@@ -1,4 +1,4 @@
-package org.htw.drawingnumbers;
+package org.htw.drawdigits;
 
 import javafx.util.Pair;
 

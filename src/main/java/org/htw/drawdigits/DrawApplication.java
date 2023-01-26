@@ -1,4 +1,4 @@
-package org.htw.drawingnumbers;
+package org.htw.drawdigits;
 
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
@@ -11,7 +11,7 @@ import java.io.IOException;
 public class DrawApplication extends Application {
 
   public static final File CONTROLLER_FXML =
-      new File("src/main/resources/org/htw/drawingnumbers/primary.fxml");
+      new File("src/main/resources/org/htw/drawdigits/primary.fxml");
 
   public static void main(String[] args) {
     launch();
