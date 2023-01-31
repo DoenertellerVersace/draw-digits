@@ -22,9 +22,8 @@ public class DrawApplication extends Application {
     FXMLLoader fxmlLoader = new FXMLLoader(CONTROLLER_FXML.toURI().toURL());
     Scene scene = new Scene(fxmlLoader.load(), 800, 520);
     PrimaryController controller = fxmlLoader.getController();
-    controller.setStage(stage);
     controller.cleanCanvas();
-    controller.drawResult();
+    controller.writeResult();
     stage.setTitle("Start drawing digits today!");
     stage.setScene(scene);
     stage.show();

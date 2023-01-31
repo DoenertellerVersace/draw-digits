@@ -16,11 +16,11 @@
         <HBox prefHeight="50" alignment="CENTER_LEFT">
           <Label text="Load a .h5 Model and draw a Digit [0-9] to predict:"/>
         </HBox>
-        <Label prefWidth="250"/>
+        <Label prefWidth="200"/>
         <HBox alignment="CENTER_RIGHT" prefHeight="50">
-          <Label fx:id="modelLabel" text="Choose a model..."/>
+          <Label fx:id="modelLabel" textAlignment="RIGHT" prefWidth="150" text="Choose a model..."/>
           <Label prefWidth="10"/>
-          <Button text="Load Model" onAction="#onChooseModel"/>
+          <ChoiceBox prefWidth="120" fx:id="modelBox" onMousePressed="#checkModelOptions"/>
         </HBox>
       </HBox>
     </top>
@@ -43,11 +43,11 @@
           <Label prefWidth="10"/>
           <Button text="Undo" onAction="#onUndoDraw"/>
           <Label prefWidth="10"/>
-          <Label  text="Erase: "/>
+          <Label text="Erase: "/>
           <Label prefWidth="4"/>
           <CheckBox fx:id="erase"/>
           <Label prefWidth="4"/>
-          <Label  text="Brush: "/>
+          <Label text="Brush: "/>
           <Slider fx:id="brushSize" accessibleText="Brush Size" value="18" min="10" max="25" showTickLabels="true"/>
         </HBox>
         <Label prefWidth="300"/>

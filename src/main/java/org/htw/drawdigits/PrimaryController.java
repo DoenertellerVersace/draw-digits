@@ -1,62 +1,66 @@
 package org.htw.drawdigits;
 
-import javafx.embed.swing.SwingFXUtils;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.beans.value.ObservableValue;
+import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
-import javafx.stage.FileChooser;
-import javafx.stage.FileChooser.ExtensionFilter;
-import javafx.stage.Stage;
+import javafx.util.Duration;
 import javafx.util.Pair;
-import okhttp3.*;
+import okhttp3.Response;
+import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.net.URL;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.*;
+import java.util.NoSuchElementException;
+import java.util.ResourceBundle;
+import java.util.stream.Collectors;
 
 import static java.lang.String.format;
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static java.util.Objects.requireNonNull;
-import static javafx.scene.paint.Color.BLACK;
-import static javafx.scene.paint.Color.WHITE;
+import static javafx.scene.paint.Color.*;
+import static org.htw.drawdigits.Client.convertToJSON;
+import static org.htw.drawdigits.Utils.getGreyScaleCSVFromCanvas;
 
-public class PrimaryController {
+public class PrimaryController implements Initializable {
+  static final String MODEL_BEING_LOADED = "%s is loading...";
+  static final String MODEL_READY = "%s is ready to go!";
+  static final String MODEL_FAILED = "loading %s failed!";
+  static final String MODEL_PLS_CHOOSE = "load a model please...";
+  static final String NOTHING_DRAWN_YET = "nothing drawn yet...";
+  static final String RESET_METHOD = "reset";
+  static final String MODEL_METHOD = "model";
+  static final String PREDICT_METHOD = "predict";
+  public static final String CONNECTION_TO_SERVER_LOST = "CONNECTION TO SERVER LOST";
 
-  public static final File MODEL_FILE_INITIAL_DIRECTORY = new File(System.getProperty("user.home"));
-  public static final String MODEL_FILE_DESC = "model file (.h5)";
-  public static final String MODEL_FILE_EXT = "*.h5";
-  public static final String MODEL_BEING_LOADED = "%s is loading...";
-  public static final String MODEL_READY = "%s is ready to go!";
-  public static final String MODEL_PLS_CHOOSE = "load a model please...";
-  public static final String NOTHING_DRAWN_YET = "nothing drawn yet...";
-  public static final OkHttpClient OK_HTTP_CLIENT = new OkHttpClient();
-  public static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
-  public static final String URL = "http://localhost:8000/%s";
-  public static final int IMG_PROC_W = 28;
-  public static final int IMG_PROC_H = 28;
-  public static final String RESET_METHOD = "reset";
-  public static final String MODEL_METHOD = "model";
-  public static final String PREDICT_METHOD = "predict";
-  private static final String MODEL_FAILED = "loading %s failed!";
+  private final Client CLIENT = new Client();
   private LinkedList<Draw> draws = new LinkedList<>();
   private List<Pair<Double, Double>> drawNow;
-  private File modelFile;
   private Color background = BLACK;
   private Color brush = WHITE;
-  private Stage stage;
+  private JSONObject models;
+  private Model model;
   @FXML
-  public Canvas resultCanvas;
+  private ChoiceBox<Model> modelBox;
+  @FXML
+  private Canvas resultCanvas;
   @FXML
   private Slider brushSize;
   @FXML
@@ -65,65 +69,45 @@ public class PrimaryController {
   private CheckBox erase;
   @FXML
   private Canvas canvas;
+  private String oldText;
 
-  private static String post(String method, String json) throws IOException {
-    RequestBody body = RequestBody.create(json, JSON);
-    Request request = new Request.Builder()
-        .url(format(URL, method))
-        .post(body)
-        .build();
-    try (Response response = OK_HTTP_CLIENT.newCall(request).execute()) {
-      return requireNonNull(response.body()).string();
-    } catch (IOException e) {
-      System.out.printf("error while performing post: %s", e.getMessage());
-      return "";
+  @Override
+  public void initialize(URL url, ResourceBundle rb) {
+    Timeline timeline = new Timeline();
+    timeline.setCycleCount(Timeline.INDEFINITE);
+    timeline.setAutoReverse(false);
+    timeline.getKeyFrames().add(new KeyFrame(Duration.seconds(1), event -> pingServer()));
+    timeline.play();
+    modelBox.getSelectionModel()
+        .selectedItemProperty()
+        .addListener(this::modelChanged);
+  }
+
+
+  @FXML
+  private void checkModelOptions() {
+    models = CLIENT.getModels();
+    modelBox.setItems(FXCollections.observableList(
+        models.keySet().stream()
+            .map(key -> new Model(key, models.getString(key)))
+            .collect(Collectors.toList())
+    ));
+  }
+
+  private void pingServer() {
+    try (Response response = CLIENT.get()) {
+      if (response.code() == 200) {
+        if (nonNull(oldText)) {
+          setModelLabelText(oldText);
+        }
+        return;
+      }
+    } catch (IOException ignored) {
     }
-  }
-
-  private static String get(String method) {
-    Request request = new Request.Builder()
-        .url(format(URL, method))
-        .build();
-    try (Response response = OK_HTTP_CLIENT.newCall(request).execute()) {
-      return requireNonNull(response.body()).string();
-    } catch (IOException e) {
-      System.out.printf("error while performing get: %s", e.getMessage());
-      return "";
+    if (!modelLabel.getText().equals(CONNECTION_TO_SERVER_LOST)) {
+      oldText = modelLabel.getText();
     }
-  }
-
-  private static String convertToJSON(String key, String value) throws IOException {
-    return new JSONObject(Map.of(key, value)).toString();
-  }
-
-  private static String replaceBackSlashes(File file) {
-    return file.getAbsolutePath().replace("\\", "/");
-  }
-
-  private static BufferedImage getScaledDownImage(BufferedImage image) {
-    return toBufferedImage(image.getScaledInstance(IMG_PROC_W, IMG_PROC_H, BufferedImage.SCALE_AREA_AVERAGING));
-  }
-
-  public static BufferedImage toBufferedImage(Image img) {
-    if (img instanceof BufferedImage) {
-      return (BufferedImage) img;
-    }
-    BufferedImage buffered = new BufferedImage(
-        img.getWidth(null), img.getHeight(null),
-        BufferedImage.TYPE_INT_ARGB
-    );
-    Graphics2D g = buffered.createGraphics();
-    g.drawImage(img, 0, 0, null);
-    g.dispose();
-    return buffered;
-  }
-
-  private File chooseModelFile() {
-    ExtensionFilter filter = new ExtensionFilter(MODEL_FILE_DESC, MODEL_FILE_EXT);
-    FileChooser fileChooser = new FileChooser();
-    fileChooser.getExtensionFilters().add(filter);
-    fileChooser.setInitialDirectory(MODEL_FILE_INITIAL_DIRECTORY);
-    return fileChooser.showOpenDialog(stage);
+    setModelLabelText(CONNECTION_TO_SERVER_LOST);
   }
 
   public void canvasOnMousePressed(MouseEvent mouseEvent) {
@@ -146,82 +130,13 @@ public class PrimaryController {
     evalCanvas();
   }
 
-  private Draw getDraw(List<Pair<Double, Double>> curve) {
-    return new Draw(curve, brushSize.getValue(),
-        erase.isSelected() ? Draw.Paint.BACKGROUND : Draw.Paint.BRUSH
-    );
-  }
-
-  public void drawResult(String string) {
-    GraphicsContext g = resultCanvas.getGraphicsContext2D();
-    g.setFill(WHITE);
-    g.fillRect(0, 0, 400, 400);
-    g.setFill(BLACK);
-    g.setTextAlign(TextAlignment.CENTER);
-    g.strokeText(string, 200, 200, 400);
-  }
-
-  public void drawResult() {
-    drawResult(NOTHING_DRAWN_YET);
-  }
-
-  private void draw(Draw curve) {
-    GraphicsContext g = canvas.getGraphicsContext2D();
-    g.setFill(getColor(curve.getPaint()));
-    curve.getPoints().forEach(point -> {
-      double t = curve.getSize();
-      g.fillRect(point.getKey() - t / 2, point.getValue() - t / 2, t, t);
-    });
-  }
-
-  private void evalCanvas() throws IOException {
-    String image = getGreyScaleCSVFromCanvas();
-    drawResult(post(PREDICT_METHOD, convertToJSON("data", image)));
-  }
-
-  private String getGreyScaleCSVFromCanvas() {
-    List<String> headers = new ArrayList<>();
-    List<String> values = new ArrayList<>();
-    BufferedImage buffered = getScaledDownImage(SwingFXUtils.fromFXImage(canvas.snapshot(null, null), null));
-    for (int i = 0; i < buffered.getHeight(); i++) {
-      for (int j = 0; j < buffered.getWidth(); j++) {
-        headers.add(format("pixel%d", i * 28 + j));
-        int rgb = buffered.getRGB(j, i);
-        int r = (rgb >> 16) & 0xFF;
-        int g = (rgb >> 8) & 0xFF;
-        int b = (rgb & 0xFF);
-        values.add(String.valueOf((r + g + b) / 3));
-      }
-    }
-    return String.join("\n", String.join(",", headers), String.join(",", values));
-  }
-
-  public void onChooseModel(ActionEvent ignored) {
-    if (nonNull(modelFile = chooseModelFile())) {
-      setModelLabelText(MODEL_BEING_LOADED);
-      try {
-        if (post(
-            MODEL_METHOD, convertToJSON("path", replaceBackSlashes(modelFile))
-        ).contains("ready")) {
-          setModelLabelText(MODEL_READY);
-        } else {
-          setModelLabelText(MODEL_FAILED);
-        }
-        cleanCanvas();
-        drawResult();
-      } catch (IOException ex) {
-        System.out.printf("error while loading model: %s%n", ex.getMessage());
-      }
-    }
-  }
-
   public void onReset(ActionEvent ignored) {
     try {
-      if (get(RESET_METHOD).contains("model was reset")) {
+      if (CLIENT.get(RESET_METHOD).contains("model was reset")) {
         setModelLabelText(MODEL_PLS_CHOOSE);
         draws = new LinkedList<>();
         cleanCanvas();
-        drawResult();
+        writeResult();
       }
     } catch (IllegalStateException ex) {
       System.out.println("wtf");
@@ -241,31 +156,127 @@ public class PrimaryController {
       cleanCanvas();
       draws.removeLast();
       if (draws.isEmpty()) {
-        drawResult();
+        writeResult();
         return;
       }
       draws.forEach(this::draw);
       evalCanvas();
-    } catch (NoSuchElementException e) {
-      System.out.println("cannot reverse when nothings been done!");
+    } catch (NoSuchElementException ignored1) {
     }
+  }
+
+  private void evalCanvas() throws IOException {
+    String image = getGreyScaleCSVFromCanvas(canvas);
+    try (Response response = CLIENT.post(PREDICT_METHOD, convertToJSON("data", image))) {
+      if (isNull(response.body())) {
+        System.out.println("wtf");
+        return;
+      }
+      String string = response.body().string();
+      JSONObject data = convertToJSON(string);
+      if (!data.has("table")) {
+        System.out.println("wtf");
+        return;
+      }
+      List<BigDecimal> table = data.getJSONArray("table")
+          .toList().stream()
+          .map(o -> ((BigDecimal) o))
+          .collect(Collectors.toList());
+      writeResult(table);
+    } catch (JSONException e) {
+      System.out.println("response did not contain JSON: " + e.getMessage());
+    }
+  }
+
+  private void writeResult(List<BigDecimal> table) {
+    GraphicsContext g = resultCanvas.getGraphicsContext2D();
+    g.setFill(WHITE);
+    g.fillRect(0, 0, 400, 400);
+    Font font = g.getFont();
+    for (int i = 0; i < table.size(); i++) {
+      double a = table.get(i).doubleValue();
+      g.setFont(Font.font((Math.log(a)) + a * 140));
+      if (table.stream().mapToDouble(BigDecimal::doubleValue).max().orElseThrow() == a) {
+        g.setFill(RED);
+      } else {
+        g.setFill(BLACK);
+      }
+      g.fillText(String.valueOf(i), Math.random() * 200 + 100, Math.random() * 200 + 100);
+    }
+    g.setFont(font);
+    g.setFill(BLACK);
+  }
+
+  public void writeResult(String string) {
+    GraphicsContext g = resultCanvas.getGraphicsContext2D();
+    g.setFill(WHITE);
+    g.fillRect(0, 0, 400, 400);
+    g.setFill(BLACK);
+    g.setTextAlign(TextAlignment.CENTER);
+    g.strokeText(string, 200, 200, 400);
+  }
+
+  public void writeResult() {
+    writeResult(NOTHING_DRAWN_YET);
+  }
+
+  private void draw(Draw curve) {
+    GraphicsContext g = canvas.getGraphicsContext2D();
+    g.setFill(getColor(curve.getPaint()));
+    curve.getPoints().forEach(point -> {
+      double t = curve.getSize();
+      g.fillRect(point.getKey() - t / 2, point.getValue() - t / 2, t, t);
+    });
+  }
+
+  public void cleanCanvas() {
+    canvas.getGraphicsContext2D().setFill(background);
+    canvas.getGraphicsContext2D().fillRect(0, 0, 400, 400);
+    writeResult();
   }
 
   private Color getColor(Draw.Paint paint) {
     return paint.equals(Draw.Paint.BACKGROUND) ? background : brush;
   }
 
-  public void cleanCanvas() {
-    canvas.getGraphicsContext2D().setFill(background);
-    canvas.getGraphicsContext2D().fillRect(0, 0, 400, 400);
-    drawResult();
+  private Draw getDraw(List<Pair<Double, Double>> curve) {
+    return new Draw(curve, brushSize.getValue(),
+        erase.isSelected() ? Draw.Paint.BACKGROUND : Draw.Paint.BRUSH
+    );
   }
 
   private void setModelLabelText(String s) {
-    modelLabel.setText(format(s, nonNull(modelFile) ? modelFile.getName() : "null"));
+    modelLabel.setText(format(s, nonNull(model) ? model : "null"));
   }
 
-  public void setStage(Stage stage) {
-    this.stage = stage;
+  private void modelChanged(ObservableValue<? extends Model> observable, Model old, Model selected) {
+    if (isNull(selected)) {
+      return;
+    }
+    model = selected;
+    setModelLabelText(MODEL_BEING_LOADED);
+    try (Response res = CLIENT.post(MODEL_METHOD, convertToJSON("num", selected.key))) {
+      if (res.code() == 200) {
+        setModelLabelText(MODEL_READY);
+      } else {
+        setModelLabelText(MODEL_FAILED);
+      }
+    }
   }
+
+  public static class Model {
+    String key;
+    String name;
+
+    public Model(String key, String name) {
+      this.key = key;
+      this.name = name;
+    }
+
+    @Override
+    public String toString() {
+      return name;
+    }
+  }
+
 }
