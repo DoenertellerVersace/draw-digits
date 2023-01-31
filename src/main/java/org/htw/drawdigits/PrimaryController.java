@@ -40,15 +40,15 @@ import static org.htw.drawdigits.Client.convertToJSON;
 import static org.htw.drawdigits.Utils.getGreyScaleCSVFromCanvas;
 
 public class PrimaryController implements Initializable {
-  static final String MODEL_BEING_LOADED = "%s is loading...";
-  static final String MODEL_READY = "%s is ready to go!";
-  static final String MODEL_FAILED = "loading %s failed!";
-  static final String MODEL_PLS_CHOOSE = "load a model please...";
-  static final String NOTHING_DRAWN_YET = "nothing drawn yet...";
-  static final String RESET_METHOD = "reset";
-  static final String MODEL_METHOD = "model";
-  static final String PREDICT_METHOD = "predict";
-  public static final String CONNECTION_TO_SERVER_LOST = "CONNECTION TO SERVER LOST";
+  private static final String MODEL_BEING_LOADED = "%s is loading...";
+  private static final String MODEL_READY = "%s is ready to go!";
+  private static final String MODEL_FAILED = "loading %s failed!";
+  private static final String MODEL_PLS_CHOOSE = "load a model please...";
+  private static final String NOTHING_DRAWN_YET = "nothing drawn yet...";
+  private static final String RESET_METHOD = "reset";
+  private static final String MODEL_METHOD = "model";
+  private static final String PREDICT_METHOD = "predict";
+  private static final String CONNECTION_TO_SERVER_LOST = "CONNECTION TO SERVER LOST";
 
   private final Client CLIENT = new Client();
   private LinkedList<Draw> draws = new LinkedList<>();
@@ -56,7 +56,9 @@ public class PrimaryController implements Initializable {
   private Color background = BLACK;
   private Color brush = WHITE;
   private JSONObject models;
+  private String oldText;
   private Model model;
+  
   @FXML
   private ChoiceBox<Model> modelBox;
   @FXML
@@ -69,7 +71,6 @@ public class PrimaryController implements Initializable {
   private CheckBox erase;
   @FXML
   private Canvas canvas;
-  private String oldText;
 
   @Override
   public void initialize(URL url, ResourceBundle rb) {
