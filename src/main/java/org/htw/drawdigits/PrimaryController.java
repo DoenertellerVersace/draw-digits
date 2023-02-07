@@ -58,7 +58,7 @@ public class PrimaryController implements Initializable {
   private JSONObject models;
   private String oldText;
   private Model model;
-  
+
   @FXML
   private ChoiceBox<Model> modelBox;
   @FXML
@@ -132,13 +132,12 @@ public class PrimaryController implements Initializable {
   }
 
   public void onReset(ActionEvent ignored) {
+    setModelLabelText(MODEL_PLS_CHOOSE);
+    draws = new LinkedList<>();
+    cleanCanvas();
+    writeResult();
     try {
-      if (CLIENT.get(RESET_METHOD).contains("model was reset")) {
-        setModelLabelText(MODEL_PLS_CHOOSE);
-        draws = new LinkedList<>();
-        cleanCanvas();
-        writeResult();
-      }
+      CLIENT.get(RESET_METHOD);
     } catch (IllegalStateException ex) {
       System.out.println("wtf");
     }
@@ -196,7 +195,7 @@ public class PrimaryController implements Initializable {
     Font font = g.getFont();
     for (int i = 0; i < table.size(); i++) {
       double a = table.get(i).doubleValue();
-      g.setFont(Font.font((Math.log(a)) + a * 140));
+      g.setFont(Font.font(Math.log(a) + a * 200));
       if (table.stream().mapToDouble(BigDecimal::doubleValue).max().orElseThrow() == a) {
         g.setFill(RED);
       } else {
